@@ -38,7 +38,7 @@ struct matrix *new_matrix(size_t n, size_t m)
 	return a;
 }
 
-struct matrix *vec_to_mat(struct vector *v)
+struct matrix *vec_to_mat(const struct vector *v)
 {
 	struct matrix *a = new_matrix(v->n, 1);
 	if (a) {
@@ -48,7 +48,7 @@ struct matrix *vec_to_mat(struct vector *v)
 	return a;
 }
 
-struct matrix *matrix_product(struct matrix *a, struct matrix *b)
+struct matrix *matrix_product(const struct matrix *a, const struct matrix *b)
 {
 	struct matrix *c = new_matrix(a->n, b->m);
 	if (c && a->m == b-> n) {
@@ -63,7 +63,7 @@ struct matrix *matrix_product(struct matrix *a, struct matrix *b)
 	return c;
 }
 
-void multiply_vector(struct matrix *a, struct vector **vp)
+void multiply_vector(const struct matrix *a, struct vector **vp)
 {
 	struct vector *y = new_vector(a->n);
 	if (y && a->m == (*vp)->n) {
@@ -97,7 +97,7 @@ struct brain *new_brain(size_t depth, size_t *layer_sizes)
 	}
 }
 
-void think(struct brain *brain, struct vector **idea)
+void think(const struct brain *brain, struct vector **idea)
 {
 	for (size_t d = 0; d < brain->depth - 1; ++d) {
 		multiply_vector(brain->weights[d], idea);
@@ -105,7 +105,7 @@ void think(struct brain *brain, struct vector **idea)
 	}
 }
 
-void print_vector(struct vector *v)
+void print_vector(const struct vector *v)
 {
 	for (size_t i = 0; i < v->n; ++i) {
 		printf("| ");
@@ -115,7 +115,7 @@ void print_vector(struct vector *v)
 	printf("\n");
 }
 
-void print_matrix(struct matrix *a)
+void print_matrix(const struct matrix *a)
 {
 	for (size_t row = 0; row < a->n; ++row) {
 		printf("| ");
