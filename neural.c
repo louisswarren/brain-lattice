@@ -77,6 +77,12 @@ void multiply_vector(struct matrix *a, struct vector **vp)
 	}
 }
 
+void add_vector(const struct vector *summand, struct vector *v)
+{
+	for (size_t i = 0; i < v->n; ++i)
+		v->x[i] += summand->x[i];
+}
+
 struct brain *new_brain(size_t depth, size_t *layer_sizes)
 {
 	struct brain *brain = malloc(sizeof(*brain));
@@ -141,6 +147,8 @@ int main(void)
 	print_matrix(c);
 
 	multiply_vector(a, &v);
+	print_vector(v);
+	add_vector(v, v);
 	print_vector(v);
 
 	struct matrix *b2 = new_matrix(2, 2);
