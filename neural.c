@@ -4,6 +4,8 @@
 
 #define mat(A, I, J) A->x[I * A->m + J]
 
+#define dimension_assert(X) if (!(X)) puts("Dimension error");
+
 struct vector {
 	size_t n;
 	double x[];
@@ -19,7 +21,29 @@ struct brain {
 	size_t *layer_sizes;
 	struct matrix **weights;
 	struct vector **biases;
+	struct vector **memory;
 };
+
+void print_vector(const struct vector *v)
+{
+	for (size_t i = 0; i < v->n; ++i) {
+		printf("| ");
+		printf("%8f ", v->x[i]);
+		printf("|\n");
+	}
+	printf("\n");
+}
+
+void print_matrix(const struct matrix *a)
+{
+	for (size_t row = 0; row < a->n; ++row) {
+		printf("| ");
+		for (size_t col = 0; col < a->m; ++col)
+			printf("%8f ", mat(a, row, col));
+		printf("|\n");
+	}
+	printf("\n");
+}
 
 double rand_weight()
 {
@@ -89,17 +113,13 @@ struct matrix *matrix_product(const struct matrix *a, const struct matrix *b)
 	return c;
 }
 
-void multiply_vector(const struct matrix *a, struct vector **vp)
+void multiply_vector(const struct matrix *a, const struct vector *v, struct vector *y)
 {
-	struct vector *y = new_vector(a->n);
-	if (y && a->m == (*vp)->n) {
-		for (size_t i = 0; i < a->n; ++i) {
-			y->x[i] = 0;
-			for (size_t k = 0; k < a->m; ++k)
-				y->x[i] += mat(a, i, k) * (*vp)->x[k];
-		}
-		free(*vp);
-		*vp = y;
+	dimension_assert(a->m == v->n && a->n == y->n);
+	for (size_t i = 0; i < a->n; ++i) {
+		y->x[i] = 0;
+		for (size_t k = 0; k < a->m; ++k)
+			y->x[i] += mat(a, i, k) * v->x[k];
 	}
 }
 
@@ -117,41 +137,24 @@ struct brain *new_brain(size_t depth, size_t layer_sizes[])
 	memcpy(brain->layer_sizes, layer_sizes, depth);
 	brain->weights = malloc((depth - 1) * sizeof(*brain->weights));
 	brain->biases = malloc((depth - 1) * sizeof(*brain->biases));
+	brain->memory = malloc((depth - 1) * sizeof(*brain->memory));
 
 	for (size_t i = 0; i < depth - 1; ++i) {
 		brain->weights[i] = new_rand_matrix(layer_sizes[i + 1], layer_sizes[i]);
 		brain->biases[i] = new_rand_vector(layer_sizes[i + 1]);
+		brain->memory[i] = new_vector(layer_sizes[i + 1]);
 	}
 	return brain;
 }
 
-void think(const struct brain *brain, struct vector **idea)
+void think(const struct brain *brain, struct vector *idea)
 {
-	for (size_t d = 0; d < brain->depth - 1; ++d) {
-		multiply_vector(brain->weights[d], idea);
-		add_vector(brain->biases[d], *idea);
+	multiply_vector(brain->weights[0], idea, brain->memory[0]);
+	add_vector(brain->biases[0], brain->memory[0]);
+	for (size_t d = 1; d < brain->depth - 1; ++d) {
+		multiply_vector(brain->weights[d], brain->memory[d - 1], brain->memory[d]);
+		add_vector(brain->biases[d], brain->memory[d]);
 	}
-}
-
-void print_vector(const struct vector *v)
-{
-	for (size_t i = 0; i < v->n; ++i) {
-		printf("| ");
-		printf("%8f ", v->x[i]);
-		printf("|\n");
-	}
-	printf("\n");
-}
-
-void print_matrix(const struct matrix *a)
-{
-	for (size_t row = 0; row < a->n; ++row) {
-		printf("| ");
-		for (size_t col = 0; col < a->m; ++col)
-			printf("%8f ", mat(a, row, col));
-		printf("|\n");
-	}
-	printf("\n");
 }
 
 int main(void)
@@ -182,8 +185,8 @@ int main(void)
 
 	struct matrix *d = matrix_product(b2, a);
 
-	size_t layer_sizes[] = {3, 20, 1};
+	size_t layer_sizes[] = {3, 2, 1};
 	struct brain *brain = new_brain(3, layer_sizes);
-	think(brain, &v);
-	print_vector(v);
+	think(brain, v);
+	print_vector(brain->memory[1]);
 }
