@@ -63,6 +63,20 @@ struct matrix *matrix_product(struct matrix *a, struct matrix *b)
 	return c;
 }
 
+void multiply_vector(struct matrix *a, struct vector **vp)
+{
+	struct vector *y = new_vector(a->n);
+	if (y && a->m == (*vp)->n) {
+		for (size_t i = 0; i < a->n; ++i) {
+			y->x[i] = 0;
+			for (size_t k = 0; k < a->m; ++k)
+				y->x[i] += mat(a, i, k) * (*vp)->x[k];
+		}
+		free(*vp);
+		*vp = y;
+	}
+}
+
 struct brain *new_brain(size_t depth, size_t *layer_sizes)
 {
 	struct brain *brain = malloc(sizeof(*brain));
@@ -113,7 +127,6 @@ int main(void)
 
 	struct matrix *b = vec_to_mat(v);
 	print_matrix(b);
-	free(v);
 
 	struct matrix *a = new_matrix(2, 3);
 	mat(a, 0, 0) = 1;
@@ -126,6 +139,9 @@ int main(void)
 
 	struct matrix *c = matrix_product(a, b);
 	print_matrix(c);
+
+	multiply_vector(a, &v);
+	print_vector(v);
 
 	struct matrix *b2 = new_matrix(2, 2);
 	mat(b2, 0, 0) = -2;
