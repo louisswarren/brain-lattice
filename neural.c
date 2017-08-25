@@ -97,9 +97,12 @@ struct brain *new_brain(size_t depth, size_t *layer_sizes)
 	}
 }
 
-struct vector *think(struct brain *brain, struct vector *input)
+void think(struct brain *brain, struct vector **idea)
 {
-
+	for (size_t d = 0; d < brain->depth - 1; ++d) {
+		multiply_vector(brain->weights[d], idea);
+		add_vector(brain->biases[d], *idea);
+	}
 }
 
 void print_vector(struct vector *v)
