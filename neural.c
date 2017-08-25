@@ -1,5 +1,6 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define mat(A, I, J) A->x[I * A->m + J]
 
@@ -20,11 +21,26 @@ struct brain {
 	struct vector **biases;
 };
 
+double rand_weight()
+{
+	return (rand() / (double)(RAND_MAX)) * 2 - 1;
+}
+
 struct vector *new_vector(size_t n)
 {
 	struct vector *v = malloc(sizeof(*v) + n * sizeof(v->x[0]));
 	if (v)
 		v->n = n;
+	return v;
+}
+
+struct vector *new_rand_vector(size_t n)
+{
+	struct vector *v = new_vector(n);
+	if (v) {
+		for (size_t i = 0; i < n; ++i)
+			v->x[i] = rand_weight();
+	}
 	return v;
 }
 
@@ -34,6 +50,16 @@ struct matrix *new_matrix(size_t n, size_t m)
 	if (a) {
 		a->n = n;
 		a->m = m;
+	}
+	return a;
+}
+
+struct matrix *new_rand_matrix(size_t n, size_t m)
+{
+	struct matrix *a = new_matrix(n, m);
+	if (a) {
+		for (size_t i = 0; i < n * m; ++i)
+			a->x[i] = rand_weight();
 	}
 	return a;
 }
@@ -83,18 +109,20 @@ void add_vector(const struct vector *summand, struct vector *v)
 		v->x[i] += summand->x[i];
 }
 
-struct brain *new_brain(size_t depth, size_t *layer_sizes)
+struct brain *new_brain(size_t depth, size_t layer_sizes[])
 {
 	struct brain *brain = malloc(sizeof(*brain));
 	brain->depth = depth;
-	brain->layer_sizes = layer_sizes;
+	brain->layer_sizes = malloc(depth * sizeof(brain->layer_sizes[0]));
+	memcpy(brain->layer_sizes, layer_sizes, depth);
 	brain->weights = malloc((depth - 1) * sizeof(*brain->weights));
 	brain->biases = malloc((depth - 1) * sizeof(*brain->biases));
 
 	for (size_t i = 0; i < depth - 1; ++i) {
-		brain->weights[i] = new_matrix(layer_sizes[i + 1], layer_sizes[i]);
-		brain->biases[i] = new_vector(layer_sizes[i + 1]);
+		brain->weights[i] = new_rand_matrix(layer_sizes[i + 1], layer_sizes[i]);
+		brain->biases[i] = new_rand_vector(layer_sizes[i + 1]);
 	}
+	return brain;
 }
 
 void think(const struct brain *brain, struct vector **idea)
@@ -135,7 +163,6 @@ int main(void)
 	print_vector(v);
 
 	struct matrix *b = vec_to_mat(v);
-	print_matrix(b);
 
 	struct matrix *a = new_matrix(2, 3);
 	mat(a, 0, 0) = 1;
@@ -144,23 +171,19 @@ int main(void)
 	mat(a, 1, 0) = 4;
 	mat(a, 1, 1) = 5;
 	mat(a, 1, 2) = 6;
-	print_matrix(a);
 
 	struct matrix *c = matrix_product(a, b);
-	print_matrix(c);
-
-	multiply_vector(a, &v);
-	print_vector(v);
-	add_vector(v, v);
-	print_vector(v);
 
 	struct matrix *b2 = new_matrix(2, 2);
 	mat(b2, 0, 0) = -2;
 	mat(b2, 0, 1) = 1;
 	mat(b2, 1, 0) = 2;
 	mat(b2, 1, 1) = 3;
-	print_matrix(b2);
 
 	struct matrix *d = matrix_product(b2, a);
-	print_matrix(d);
+
+	size_t layer_sizes[] = {3, 20, 1};
+	struct brain *brain = new_brain(3, layer_sizes);
+	think(brain, &v);
+	print_vector(v);
 }
