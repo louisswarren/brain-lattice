@@ -1,102 +1,75 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-struct neuron {
+#define mat(A, I, J) A->x[I * A->m + J]
+
+struct vector {
 	size_t n;
-	double **inputs;
-	double output;
-	double bias;
-	double *weights;
+	double x[];
+};
+
+struct matrix {
+	size_t n, m;
+	double x[];
 };
 
 struct brain {
-	struct neuron **neurons;
-	size_t len;
-	double *inputs;
-	size_t input_len;
-	double **outputs;
-	size_t output_len;
+	size_t depth;
+	size_t *layer_sizes;
+	struct matrix *weights;
 };
 
-struct neuron *new_neuron(size_t n)
+struct vector *new_vector(size_t n)
 {
-	struct neuron *neuron = malloc(sizeof(*neuron));
-	double **inputs = malloc(n * sizeof(*inputs));
-	double *weights = malloc(n * sizeof(*weights));
-
-	neuron->n = n;
-	neuron->inputs = inputs;
-	neuron->weights = weights;
+	struct vector *v = malloc(sizeof(*v) + n * sizeof(v->x[0]));
+	if (v)
+		v->n = n;
+	return v;
 }
 
-void delete_neuron(struct neuron *neuron)
+struct matrix *new_matrix(size_t n, size_t m)
 {
-	free(neuron->inputs);
-	free(neuron->weights);
-	free(neuron);
-}
-
-struct brain *brain_lattice(size_t n, size_t depth, size_t *layer_sizes)
-{
-	struct brain *brain = malloc(sizeof(brain));
-	size_t neuron_counter = 0;
-
-	brain->inputs = malloc(n * sizeof(double));
-	brain->input_len = n;
-	brain->outputs = malloc(layer_sizes[depth - 1] * sizeof(double *));
-	brain->output_len = layer_sizes[depth - 1];
-
-	brain->len = 0;
-	for (size_t i = 0; i < depth; ++i)
-		brain->len += layer_sizes[i];
-	brain->neurons = malloc(brain->len * sizeof(struct neuron *));
-
-	/* Connect the first layer of neurons to the inputs. */
-	for (size_t i = 0; i < layer_sizes[0]; ++i) {
-		brain->neurons[neuron_counter] = new_neuron(n);
-		for (size_t j = 0; j < n; ++j)
-			brain->neurons[neuron_counter]->inputs[j] = &brain->inputs[j];
-		neuron_counter++;
+	struct matrix *a = malloc(sizeof(*a) + n * m * sizeof(a->x[0]));
+	if (a) {
+		a->n = n;
+		a->m = m;
 	}
+	return a;
+}
 
-	/* Connect the remaining layers to the previous layers. */
-	for (size_t d = 1; d < depth; ++d) {
-		for (size_t i = 0; i < layer_sizes[d]; ++i) {
-			brain->neurons[neuron_counter] = new_neuron(layer_sizes[d - 1]);
-			for (size_t j = 0; j < n; ++j) {
-				size_t idx = neuron_counter - i - layer_sizes[d - 1] + j;
-				double *output = &brain->neurons[idx]->output;
-				brain->neurons[neuron_counter]->inputs[j] = output;
-			}
-			neuron_counter++;
-		}
+void print_vector(struct vector *v)
+{
+	for (size_t i = 0; i < v->n; ++i) {
+		printf("| ");
+		printf("%8f ", v->x[i]);
+		printf("|\n");
 	}
-
-	return brain;
 }
 
-void delete_brain(struct brain *brain)
+void print_matrix(struct matrix *a)
 {
-	for (size_t i = 0; i < brain->len; ++i)
-		delete_neuron(brain->neurons[i]);
-	free(brain->inputs);
-	free(brain->outputs);
-}
-
-void neuron_think(struct neuron *neuron)
-{
-	neuron->output = neuron->bias;
-	for (size_t i = 0; i < neuron->n; ++i)
-		neuron->output += neuron->weights[i] * *neuron->inputs[i];
+	for (size_t row = 0; row < a->n; ++row) {
+		printf("| ");
+		for (size_t col = 0; col < a->m; ++col)
+			printf("%8f ", mat(a, row, col));
+		printf("|\n");
+	}
 }
 
 int main(void)
 {
-	size_t widths[] = {2, 3, 1};
-	struct brain *brain = brain_lattice(2, 3, widths);
-
-	struct neuron *neuron = brain->neurons[0];
-	neuron_think(neuron);
-
-	printf("%f\n", neuron->output);
+	struct vector *v = new_vector(3);
+	v->x[0] = 1;
+	v->x[1] = 3;
+	v->x[2] = 4;
+	print_vector(v);
+	free(v);
+	struct matrix *a = new_matrix(2, 3);
+	mat(a, 0, 0) = 1;
+	mat(a, 0, 1) = 2;
+	mat(a, 0, 2) = 3;
+	mat(a, 1, 0) = 4;
+	mat(a, 1, 1) = 5;
+	mat(a, 1, 2) = 6;
+	print_matrix(a);
 }
