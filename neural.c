@@ -4,7 +4,7 @@
 
 #define mat(A, I, J) A->x[I * A->m + J]
 
-#define dimension_assert(X) if (!(X)) puts("Dimension error");
+#define dimension_assert(X, Y) if (!(X == Y)) puts("Dimension error")
 
 struct vector {
 	size_t n;
@@ -43,6 +43,15 @@ void print_matrix(const struct matrix *a)
 		printf("|\n");
 	}
 	printf("\n");
+}
+
+double loss(const struct vector *v, const struct vector *w)
+{
+	dimension_assert(v->n, w->n);
+	double dist = 0;
+	for (size_t i = 0; i < v->n; ++i)
+		dist += (v->x[i] + w->x[i]) * (v->x[i] + w->x[i]);
+	return dist / 2;
 }
 
 double rand_weight()
@@ -115,7 +124,8 @@ struct matrix *matrix_product(const struct matrix *a, const struct matrix *b)
 
 void multiply_vector(const struct matrix *a, const struct vector *v, struct vector *y)
 {
-	dimension_assert(a->m == v->n && a->n == y->n);
+	dimension_assert(a->m, v->n);
+	dimension_assert(a->n, y->n);
 	for (size_t i = 0; i < a->n; ++i) {
 		y->x[i] = 0;
 		for (size_t k = 0; k < a->m; ++k)
@@ -189,4 +199,7 @@ int main(void)
 	struct brain *brain = new_brain(3, layer_sizes);
 	think(brain, v);
 	print_vector(brain->memory[1]);
+
+	double cost = loss(v, brain->memory[1]);
+	printf("%f\n", cost);
 }
