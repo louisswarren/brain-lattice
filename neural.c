@@ -23,6 +23,7 @@ struct brain {
 	struct matrix **weights;
 	struct vector **biases;
 	struct vector **memory;
+	struct vector **errors;
 };
 
 void print_vector(const struct vector *v)
@@ -135,12 +136,14 @@ struct brain *new_brain(size_t depth, size_t layer_sizes[])
 	brain->weights = malloc((depth - 1) * sizeof(*brain->weights));
 	brain->biases = malloc((depth - 1) * sizeof(*brain->biases));
 	brain->memory = malloc((depth) * sizeof(*brain->memory));
+	brain->errors = malloc((depth - 1) * sizeof(*brain->errors));
 
 	brain->memory[0] = new_vector(layer_sizes[0]);
 	for (size_t i = 0; i < depth - 1; ++i) {
 		brain->weights[i] = new_rand_matrix(layer_sizes[i + 1], layer_sizes[i]);
 		brain->biases[i] = new_rand_vector(layer_sizes[i + 1]);
 		brain->memory[i + 1] = new_vector(layer_sizes[i + 1]);
+		brain->errors[i] = new_vector(layer_sizes[i + 1]);
 	}
 	return brain;
 }
@@ -154,6 +157,30 @@ void think(const struct brain *brain, const struct vector *idea)
 		multiply_vector(brain->weights[d], brain->memory[d], brain->memory[d + 1]);
 		add_vector(brain->biases[d], brain->memory[d + 1]);
 		perceive(brain->memory[d + 1]);
+	}
+}
+
+void learn(struct brain *brain, const struct vector *idea, const struct vector *target)
+{
+	const double rate = 0.05;
+	size_t out_depth = brain->depth - 1;
+	/* Keep track of the input idea. This really won't be modified; promise! */
+	brain->memory[0] = (struct vector *)idea;
+	think(brain, idea);
+	/* Output errors: error = output*(1 - output)*(target - output) */
+	for (size_t i = 0; i < brain->layer_sizes[out_depth]; ++i) {
+		double *errorp = &brain->errors[out_depth - 1]->x[i];
+		double output = brain->memory[out_depth]->x[i];
+		double expected = target->x[i];
+		*errorp = output * (1 - output) * (expected - output);
+
+		double delta = rate * (*errorp) * brain->memory[out_depth + 1];
+		brain->weight[out_depth - 1]->x[i] += delta;
+	}
+
+	/* Hidden errors: error = output*(1 - output)*sum{error * error's weight} */
+	for (size_t d = out_depth - 1; d > 0; --d) {
+		/* incomplete */
 	}
 }
 
