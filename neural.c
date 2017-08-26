@@ -57,7 +57,7 @@ double loss(const struct vector *v, const struct vector *w)
 
 double rand_weight()
 {
-	return (rand() / (double)(RAND_MAX)) * 2 - 1;
+	return (rand() / (double)(RAND_MAX)) * 0.1 - 0.05;
 }
 
 struct vector *new_vector(size_t n)
@@ -134,25 +134,26 @@ struct brain *new_brain(size_t depth, size_t layer_sizes[])
 	memcpy(brain->layer_sizes, layer_sizes, depth);
 	brain->weights = malloc((depth - 1) * sizeof(*brain->weights));
 	brain->biases = malloc((depth - 1) * sizeof(*brain->biases));
-	brain->memory = malloc((depth - 1) * sizeof(*brain->memory));
+	brain->memory = malloc((depth) * sizeof(*brain->memory));
 
+	brain->memory[0] = new_vector(layer_sizes[0]);
 	for (size_t i = 0; i < depth - 1; ++i) {
 		brain->weights[i] = new_rand_matrix(layer_sizes[i + 1], layer_sizes[i]);
 		brain->biases[i] = new_rand_vector(layer_sizes[i + 1]);
-		brain->memory[i] = new_vector(layer_sizes[i + 1]);
+		brain->memory[i + 1] = new_vector(layer_sizes[i + 1]);
 	}
 	return brain;
 }
 
-void think(const struct brain *brain, struct vector *idea)
+void think(const struct brain *brain, const struct vector *idea)
 {
-	multiply_vector(brain->weights[0], idea, brain->memory[0]);
-	add_vector(brain->biases[0], brain->memory[0]);
-	perceive(brain->memory[0]);
+	multiply_vector(brain->weights[0], idea, brain->memory[1]);
+	add_vector(brain->biases[0], brain->memory[1]);
+	perceive(brain->memory[1]);
 	for (size_t d = 1; d < brain->depth - 1; ++d) {
-		multiply_vector(brain->weights[d], brain->memory[d - 1], brain->memory[d]);
-		add_vector(brain->biases[d], brain->memory[d]);
-		perceive(brain->memory[d]);
+		multiply_vector(brain->weights[d], brain->memory[d], brain->memory[d + 1]);
+		add_vector(brain->biases[d], brain->memory[d + 1]);
+		perceive(brain->memory[d + 1]);
 	}
 }
 
@@ -167,5 +168,5 @@ int main(void)
 	size_t layer_sizes[] = {3, 2, 1};
 	struct brain *brain = new_brain(3, layer_sizes);
 	think(brain, v);
-	print_vector(brain->memory[1]);
+	print_vector(brain->memory[2]);
 }
