@@ -174,14 +174,15 @@ void learn(struct brain *brain, const struct vector *idea, const struct vector *
 		double expected = target->x[i];
 		*errorp = output * (1 - output) * (expected - output);
 
-		double delta = rate * (*errorp) * brain->memory[out_depth + 1];
-		brain->weight[out_depth - 1]->x[i] += delta;
+		double delta = rate * (*errorp) * brain->memory[out_depth + 1]->x[i];
+		brain->weights[out_depth - 1]->x[i] += delta;
 	}
 
 	/* Hidden errors: error = output*(1 - output)*sum{error * error's weight} */
 	for (size_t d = out_depth - 1; d > 0; --d) {
 		/* incomplete */
 	}
+	brain->memory[0] = NULL;
 }
 
 int main(void)
