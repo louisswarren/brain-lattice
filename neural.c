@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define mat(A, I, J) A->x[I * A->m + J]
-
 #define dimension_assert(X, Y) if (!(X == Y)) puts("Dimension error")
 
 struct vector {
@@ -12,15 +10,11 @@ struct vector {
 	double x[];
 };
 
-struct matrix {
-	size_t n, m;
-	double x[];
-};
 
 struct brain {
 	size_t depth;
-	size_t *layer_sizes;
-	struct matrix **weights;
+	size_t *widths;
+	struct vector ***weights;
 	struct vector **biases;
 	struct vector **memory;
 	struct vector **errors;
@@ -36,16 +30,6 @@ void print_vector(const struct vector *v)
 	printf("\n");
 }
 
-void print_matrix(const struct matrix *a)
-{
-	for (size_t row = 0; row < a->n; ++row) {
-		printf("| ");
-		for (size_t col = 0; col < a->m; ++col)
-			printf("%8f ", mat(a, row, col));
-		printf("|\n");
-	}
-	printf("\n");
-}
 
 double loss(const struct vector *v, const struct vector *w)
 {
@@ -79,41 +63,13 @@ struct vector *new_rand_vector(size_t n)
 	return v;
 }
 
-struct matrix *new_matrix(size_t n, size_t m)
+double dot(const struct vector *v, const struct vector *w)
 {
-	struct matrix *a = malloc(sizeof(*a) + n * m * sizeof(a->x[0]));
-	if (a) {
-		a->n = n;
-		a->m = m;
-	}
-	return a;
-}
-
-struct matrix *new_rand_matrix(size_t n, size_t m)
-{
-	struct matrix *a = new_matrix(n, m);
-	if (a) {
-		for (size_t i = 0; i < n * m; ++i)
-			a->x[i] = rand_weight();
-	}
-	return a;
-}
-
-void multiply_vector(const struct matrix *a, const struct vector *v, struct vector *y)
-{
-	dimension_assert(a->m, v->n);
-	dimension_assert(a->n, y->n);
-	for (size_t i = 0; i < a->n; ++i) {
-		y->x[i] = 0;
-		for (size_t k = 0; k < a->m; ++k)
-			y->x[i] += mat(a, i, k) * v->x[k];
-	}
-}
-
-void add_vector(const struct vector *summand, struct vector *v)
-{
+	dimension_assert(v->n, w->n);
+	double sum = 0;
 	for (size_t i = 0; i < v->n; ++i)
-		v->x[i] += summand->x[i];
+		sum += v->x[i] * w->x[i];
+	return sum;
 }
 
 double p_func(double x)
@@ -127,62 +83,16 @@ void perceive(struct vector *v)
 		v->x[i] = p_func(v->x[i]);
 }
 
-struct brain *new_brain(size_t depth, size_t layer_sizes[])
+struct brain *new_brain(size_t depth, size_t widths[])
 {
-	struct brain *brain = malloc(sizeof(*brain));
-	brain->depth = depth;
-	brain->layer_sizes = malloc(depth * sizeof(brain->layer_sizes[0]));
-	memcpy(brain->layer_sizes, layer_sizes, depth);
-	brain->weights = malloc((depth - 1) * sizeof(*brain->weights));
-	brain->biases = malloc((depth - 1) * sizeof(*brain->biases));
-	brain->memory = malloc((depth) * sizeof(*brain->memory));
-	brain->errors = malloc((depth - 1) * sizeof(*brain->errors));
-
-	brain->memory[0] = new_vector(layer_sizes[0]);
-	for (size_t i = 0; i < depth - 1; ++i) {
-		brain->weights[i] = new_rand_matrix(layer_sizes[i + 1], layer_sizes[i]);
-		brain->biases[i] = new_rand_vector(layer_sizes[i + 1]);
-		brain->memory[i + 1] = new_vector(layer_sizes[i + 1]);
-		brain->errors[i] = new_vector(layer_sizes[i + 1]);
-	}
-	return brain;
 }
 
 void think(const struct brain *brain, const struct vector *idea)
 {
-	multiply_vector(brain->weights[0], idea, brain->memory[1]);
-	add_vector(brain->biases[0], brain->memory[1]);
-	perceive(brain->memory[1]);
-	for (size_t d = 1; d < brain->depth - 1; ++d) {
-		multiply_vector(brain->weights[d], brain->memory[d], brain->memory[d + 1]);
-		add_vector(brain->biases[d], brain->memory[d + 1]);
-		perceive(brain->memory[d + 1]);
-	}
 }
 
 void learn(struct brain *brain, const struct vector *idea, const struct vector *target)
 {
-	const double rate = 0.05;
-	size_t out_depth = brain->depth - 1;
-	/* Keep track of the input idea. This really won't be modified; promise! */
-	brain->memory[0] = (struct vector *)idea;
-	think(brain, idea);
-	/* Output errors: error = output*(1 - output)*(target - output) */
-	for (size_t i = 0; i < brain->layer_sizes[out_depth]; ++i) {
-		double *errorp = &brain->errors[out_depth - 1]->x[i];
-		double output = brain->memory[out_depth]->x[i];
-		double expected = target->x[i];
-		*errorp = output * (1 - output) * (expected - output);
-
-		double delta = rate * (*errorp) * brain->memory[out_depth + 1]->x[i];
-		brain->weights[out_depth - 1]->x[i] += delta;
-	}
-
-	/* Hidden errors: error = output*(1 - output)*sum{error * error's weight} */
-	for (size_t d = out_depth - 1; d > 0; --d) {
-		/* incomplete */
-	}
-	brain->memory[0] = NULL;
 }
 
 int main(void)
