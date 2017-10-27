@@ -4,7 +4,17 @@
 #include <string.h>
 
 #define forindex(I, V) for (size_t I = 0; I < V->len; ++I)
-#define allocate(X, N) X = malloc(sizeof(*X) * N)
+#define allocate(X, N) X = emalloc(sizeof(*X) * N)
+
+void *emalloc(size_t size)
+{
+	void *x = malloc(size);
+	if (!x) {
+		fprintf(stderr, "Out of memory.\n");
+		exit(EXIT_FAILURE);
+	}
+	return x;
+}
 
 typedef struct {
 	size_t len;
@@ -29,19 +39,16 @@ typedef struct {
 
 Vector *new_vector(size_t len)
 {
-	Vector *v = malloc(sizeof(*v) + len * sizeof(v->elem[0]));
-	if (v)
-		v->len = len;
+	Vector *v = emalloc(sizeof(*v) + len * sizeof(v->elem[0]));
+	v->len = len;
 	return v;
 }
 
 Colmatrix *new_colmatrix(size_t rows, size_t cols)
 {
-	Colmatrix *A = malloc(sizeof(*A) + rows * sizeof(A->row[0]));
-	if (A) {
-		A->rows = rows;
-		A->cols = cols;
-	}
+	Colmatrix *A = emalloc(sizeof(*A) + rows * sizeof(A->row[0]));
+	A->rows = rows;
+	A->cols = cols;
 }
 
 double dot_product(const Vector *v, const Vector *w)
@@ -73,18 +80,11 @@ void shift(Vector *v, const Vector *w)
 
 Brain *new_brain(size_t depth, const size_t widths[])
 {
-	Brain *brain = malloc(sizeof(*brain));
-
-	if (!brain) return 0;
+	Brain *brain = emalloc(sizeof(*brain));
 
 	brain->depth = depth;
 	allocate(brain->widths, depth);
 	memcpy(brain->widths, widths, depth);
-
-	if (!(allocate(brain->neurons, depth)))     return 0;
-	if (!(allocate(brain->weights, depth - 1))) return 0;
-	if (!(allocate(brain->biases,  depth - 1))) return 0;
-
 
 	for (size_t i = 0; i < depth; ++i) {
 		brain->neurons[i] = new_vector(widths[i]);
