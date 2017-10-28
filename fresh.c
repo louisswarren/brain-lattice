@@ -47,6 +47,9 @@ Vector *new_vector(size_t len)
 Colmatrix *new_colmatrix(size_t rows, size_t cols)
 {
 	Colmatrix *A = emalloc(sizeof(*A) + rows * sizeof(A->row[0]));
+	for (size_t i = 0; i < rows; ++i) {
+		A->row[i] = new_vector(cols);
+	}
 	A->rows = rows;
 	A->cols = cols;
 }
@@ -84,6 +87,10 @@ Brain *new_brain(size_t depth, const size_t widths[])
 
 	brain->depth = depth;
 	allocate(brain->widths, depth);
+	allocate(brain->neurons, depth);
+	allocate(brain->weights, depth - 1);
+	allocate(brain->biases, depth - 1);
+
 	memcpy(brain->widths, widths, depth);
 
 	for (size_t i = 0; i < depth; ++i) {
@@ -93,6 +100,8 @@ Brain *new_brain(size_t depth, const size_t widths[])
 			brain->biases[i] = new_vector(widths[i + 1]);
 		}
 	}
+
+	return brain;
 }
 
 /* Input is b->neurons[0], output is b->neurons[b->depth] */
@@ -107,5 +116,8 @@ void think(Brain *b)
 
 int main(void)
 {
+	size_t widths[] = {3, 4, 2};
+	Brain *brain = new_brain(3, widths);
+	think(brain);
 	return 0;
 }
