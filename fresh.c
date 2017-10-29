@@ -5,6 +5,7 @@
 
 #define forindex(I, V) for (size_t I = 0; I < V->len; ++I)
 #define allocate(X, N) X = emalloc(sizeof(*X) * N)
+#define weightfromto(B, D, I, J) B->weights[D]->row[J]->elem[I]
 
 void *emalloc(size_t size)
 {
@@ -29,6 +30,7 @@ typedef struct {
 typedef struct {
 	size_t depth;
 	size_t *widths;
+	double rate;
 	Vector **neurons;
 	Colmatrix **weights;
 	Vector **biases;
@@ -129,11 +131,13 @@ void print_matrix(Colmatrix *A)
 
 /* Neural network functions */
 
-Brain *new_brain(size_t depth, const size_t widths[])
+Brain *new_brain(size_t depth, const size_t widths[], double rate)
 {
 	Brain *brain = emalloc(sizeof(*brain));
 
 	brain->depth = depth;
+	brain->rate = rate;
+
 	allocate(brain->widths, depth);
 	allocate(brain->neurons, depth);
 	allocate(brain->weights, depth - 1);
@@ -170,10 +174,48 @@ void think_about(Brain *brain, Vector *v)
 	think(brain);
 }
 
+void check(Brain *brain, Vector *input, Vector *expected)
+{
+	size_t d = brain->depth - 1;
+
+	forindex(k, brain->errors[d]) {
+		double out = brain->neurons[d]->elem[k];
+		double target = expected->elem[k];
+		brain->errors[d-1]->elem[k] = out * (1 - out) * (target - out);
+	}
+
+	for (; d >= 0; --d) {
+		forindex(k, brain->errors[d]) {
+			double out = brain->neurons[d]->elem[k];
+			double errsum = 0;
+			forindex(n, brain->errors[d + 1]) {
+				double effect_weight = weightfromto(brain, d, k, n);
+				double effect_error = brain->errors[d]->elem[n];
+				errsum += effect_weight * effect_error;
+			}
+			brain->errors[d-1]->elem[k] = out * (1 - out) * errsum;
+		}
+	}
+}
+
+void learn(Brain *brain, Vector *input, Vector *output)
+{
+	check(brain, input, output);
+	for (size_t d = 0; d < brain->depth - 1; --d) {
+		forindex(i, brain->neurons[d]) {
+			forindex(j, brain->neurons[d + 1]) {
+				double error = brain->errors[d]->elem[j];
+				double value = brain->neurons[d]->elem[i];
+				weightfromto(brain, d, i, j) += brain->rate * error * value;
+			}
+		}
+	}
+}
+
 int main(void)
 {
 	size_t widths[] = {3, 4, 2};
-	Brain *brain = new_brain(3, widths);
+	Brain *brain = new_brain(3, widths, 0.05);
 	think(brain);
 
 	print_vector(brain->neurons[0]);
