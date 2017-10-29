@@ -35,12 +35,22 @@ typedef struct {
 } Brain;
 
 
+/* Misc maths */
+
+double rand_weight()
+{
+	return (rand() / (double)(RAND_MAX)) * 0.1 - 0.05;
+}
+
+
 /* Linear algebra functions */
 
 Vector *new_vector(size_t len)
 {
 	Vector *v = emalloc(sizeof(*v) + len * sizeof(v->elem[0]));
 	v->len = len;
+	forindex(i, v)
+		v->elem[i] = rand_weight();
 	return v;
 }
 
@@ -77,6 +87,43 @@ void shift(Vector *v, const Vector *w)
 		v->elem[i] += w->elem[i];
 }
 
+void print_vector(Vector *v)
+{
+	forindex(i, v) {
+		if (i == 0)
+			printf("[[ ");
+		else
+			printf(" [ ");
+		printf("% 08f  ", v->elem[i]);
+		if (i == v->len - 1)
+			printf("]]\n");
+		else
+			printf("],\n");
+	}
+	printf("\n");
+}
+
+void print_matrix(Colmatrix *A)
+{
+	for (size_t i = 0; i < A->rows; ++i) {
+		if (i == 0)
+			printf("[[ ");
+		else
+			printf(" [ ");
+		forindex(j, A->row[i]) {
+			printf("% 08f", A->row[i]->elem[j]);
+			if (j == A->row[i]->len - 1)
+				printf("  ");
+			else
+				printf(", ");
+		}
+		if (i == A->rows - 1)
+			printf("]]\n");
+		else
+			printf("],\n");
+	}
+	printf("\n");
+}
 
 
 /* Neural network functions */
@@ -119,5 +166,27 @@ int main(void)
 	size_t widths[] = {3, 4, 2};
 	Brain *brain = new_brain(3, widths);
 	think(brain);
+
+	print_vector(brain->neurons[0]);
+
+	puts("\n-->\n");
+
+	print_matrix(brain->weights[0]);
+	puts("*");
+	print_vector(brain->neurons[0]);
+	puts("+");
+	print_vector(brain->biases[0]);
+	puts("=");
+	print_vector(brain->neurons[1]);
+
+	puts("\n-->\n");
+
+	print_matrix(brain->weights[1]);
+	puts("*");
+	print_vector(brain->neurons[1]);
+	puts("+");
+	print_vector(brain->biases[1]);
+	puts("=");
+	print_vector(brain->neurons[2]);
 	return 0;
 }
