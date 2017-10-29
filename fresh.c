@@ -32,6 +32,7 @@ typedef struct {
 	Vector **neurons;
 	Colmatrix **weights;
 	Vector **biases;
+	Vector **errors;
 } Brain;
 
 
@@ -137,6 +138,7 @@ Brain *new_brain(size_t depth, const size_t widths[])
 	allocate(brain->neurons, depth);
 	allocate(brain->weights, depth - 1);
 	allocate(brain->biases, depth - 1);
+	allocate(brain->errors, depth - 1);
 
 	memcpy(brain->widths, widths, depth);
 
@@ -145,6 +147,7 @@ Brain *new_brain(size_t depth, const size_t widths[])
 		if (i < depth - 1) {
 			brain->weights[i] = new_colmatrix(widths[i + 1], widths[i]);
 			brain->biases[i] = new_vector(widths[i + 1]);
+			brain->errors[i] = new_vector(widths[i + 1]);
 		}
 	}
 
@@ -160,6 +163,12 @@ void think(Brain *b)
 	}
 }
 
+void think_about(Brain *brain, Vector *v)
+{
+	assert(v->len == brain->neurons[0]->len);
+	memcpy(brain->neurons[0]->elem, v->elem, sizeof(v->elem[0]) * v->len);
+	think(brain);
+}
 
 int main(void)
 {
