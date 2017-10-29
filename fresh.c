@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +36,7 @@ typedef struct {
 	Colmatrix **weights;
 	Vector **biases;
 	Vector **errors;
+	Vector *output;
 } Brain;
 
 
@@ -43,6 +45,11 @@ typedef struct {
 double rand_weight()
 {
 	return (rand() / (double)(RAND_MAX)) * 0.1 - 0.05;
+}
+
+double sigmoid_approx(double x)
+{
+	return x / (1 + fabs(x));
 }
 
 
@@ -155,6 +162,8 @@ Brain *new_brain(size_t depth, const size_t widths[], double rate)
 		}
 	}
 
+	brain->output = brain->neurons[depth - 1];
+
 	return brain;
 }
 
@@ -165,6 +174,8 @@ void think(Brain *b)
 		transformation(b->neurons[k + 1], b->weights[k], b->neurons[k]);
 		shift(b->neurons[k + 1], b->biases[k]);
 	}
+	forindex(k, b->neurons[b->depth - 1])
+		b->output->elem[k] = sigmoid_approx(b->output->elem[k]);
 }
 
 void think_about(Brain *brain, Vector *v)
