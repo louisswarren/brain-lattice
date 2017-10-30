@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <getopt.h>
 
 #define forindex(I, V) for (size_t I = 0; I < V->len; ++I)
 #define allocate(X, N) X = emalloc(sizeof(*X) * N)
@@ -223,32 +225,65 @@ void learn(Brain *brain, Vector *input, Vector *output)
 	}
 }
 
-int main(void)
+void learn_loop(Brain *brain)
 {
-	size_t widths[] = {3, 4, 2};
-	Brain *brain = new_brain(3, widths, 0.05);
-	think(brain);
 
-	print_vector(brain->neurons[0]);
+}
 
-	puts("\n-->\n");
+int main(int argc, char **argv)
+{
+	double learning_rate = 0.05;
+	size_t depth;
+	size_t *widths;
+	int learn_mode = 1;
+	int argerror = 0;
 
-	print_matrix(brain->weights[0]);
-	puts("*");
-	print_vector(brain->neurons[0]);
-	puts("+");
-	print_vector(brain->biases[0]);
-	puts("=");
-	print_vector(brain->neurons[1]);
+	Brain *brain;
 
-	puts("\n-->\n");
+	int c;
+	if ((c = getopt(argc, argv, "f:r:")) != -1) {
+		switch (c) {
+		case 'f':
+			learn_mode = 0;
+			break;
+		case 'r':
+			learning_rate = atof(optarg);
+			break;
+		default:
+			argerror = 1;
+		}
+	}
 
-	print_matrix(brain->weights[1]);
-	puts("*");
-	print_vector(brain->neurons[1]);
-	puts("+");
-	print_vector(brain->biases[1]);
-	puts("=");
-	print_vector(brain->neurons[2]);
+
+
+	if (learn_mode && argc > optind) {
+		depth = argc - optind;
+		widths = emalloc(sizeof(widths[0]) * depth);
+
+		size_t offset = optind;
+		for (size_t i = 0; i < depth; ++i) {
+			widths[i] = atoi(argv[i + offset]);
+		}
+
+		brain = new_brain(depth, widths, learning_rate);
+		learn_loop(brain);
+	} else if (!learn_mode) {
+		// Load brain from file and start classifying
+	}
+
+	if (argerror || learn_mode && argc <= optind) {
+		fprintf(stderr, "Usage: %s [-r learning_rate] w1 [w2 ...]\n", argv[0]);
+		fprintf(stderr, "       %s -f knowledge_file\n", argv[0]);
+		fprintf(stderr, "\n");
+		fprintf(stderr, "Learning mode:\n");
+		fprintf(stderr, "    w1 ... wn are the widths of each neural layer.\n");
+		fprintf(stderr, "    Input is whitespace-separated floats on stdin.\n");
+		fprintf(stderr, "    Output is the weights and biases learned.\n");
+		fprintf(stderr, "\n");
+		fprintf(stderr, "Classifying mode:\n");
+		fprintf(stderr, "    knowledge_file contains weights and biases.\n");
+		fprintf(stderr, "    Input and output is whitespace-separated.\n");
+	}
+
 	return 0;
 }
