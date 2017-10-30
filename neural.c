@@ -74,6 +74,7 @@ Colmatrix *new_colmatrix(size_t rows, size_t cols)
 	}
 	A->rows = rows;
 	A->cols = cols;
+	return A;
 }
 
 double dot_product(const Vector *v, const Vector *w)
@@ -106,7 +107,7 @@ void print_vector(Vector *v)
 			printf("[[ ");
 		else
 			printf(" [ ");
-		printf("% 08f  ", v->elem[i]);
+		printf("% 08lf  ", v->elem[i]);
 		if (i == v->len - 1)
 			printf("]]\n");
 		else
@@ -123,7 +124,7 @@ void print_matrix(Colmatrix *A)
 		else
 			printf(" [ ");
 		forindex(j, A->row[i]) {
-			printf("% 08f", A->row[i]->elem[j]);
+			printf("% 08lf", A->row[i]->elem[j]);
 			if (j == A->row[i]->len - 1)
 				printf("  ");
 			else
@@ -153,7 +154,7 @@ Brain *new_brain(size_t depth, const size_t widths[], double rate)
 	allocate(brain->biases, depth - 1);
 	allocate(brain->errors, depth - 1);
 
-	memcpy(brain->widths, widths, depth);
+	memcpy(brain->widths, widths, depth * sizeof(widths[0]));
 
 	for (size_t i = 0; i < depth; ++i) {
 		brain->neurons[i] = new_vector(widths[i]);
@@ -180,16 +181,10 @@ void think(Brain *b)
 		b->output->elem[k] = sigmoid_approx(b->output->elem[k]);
 }
 
-void think_about(Brain *brain, Vector *v)
+void check(Brain *brain, Vector *expected)
 {
-	assert(v->len == brain->neurons[0]->len);
-	memcpy(brain->neurons[0]->elem, v->elem, sizeof(v->elem[0]) * v->len);
 	think(brain);
-}
-
-void check(Brain *brain, Vector *input, Vector *expected)
-{
-	size_t d = brain->depth - 1;
+	int d = brain->depth - 1;
 
 	forindex(k, brain->errors[d]) {
 		double out = brain->neurons[d]->elem[k];
@@ -211,9 +206,9 @@ void check(Brain *brain, Vector *input, Vector *expected)
 	}
 }
 
-void learn(Brain *brain, Vector *input, Vector *output)
+void learn(Brain *brain, Vector *expected)
 {
-	check(brain, input, output);
+	check(brain, expected);
 	for (size_t d = 0; d < brain->depth - 1; --d) {
 		forindex(i, brain->neurons[d]) {
 			forindex(j, brain->neurons[d + 1]) {
@@ -227,7 +222,23 @@ void learn(Brain *brain, Vector *input, Vector *output)
 
 void learn_loop(Brain *brain)
 {
+	double x;
+	int cycle_pos = 0;
+	int input_len = brain->widths[0];
+	int output_len = brain->widths[brain->depth - 1];
+	Vector *expected = new_vector(output_len);
 
+	while (scanf("%lf", &x) >= 1) {
+		if (cycle_pos < input_len)
+			brain->neurons[0]->elem[cycle_pos] = x;
+		else
+			expected->elem[cycle_pos - input_len] = x;
+		cycle_pos++;
+		if (cycle_pos == input_len + output_len) {
+			cycle_pos = 0;
+			learn(brain, expected);
+		}
+	}
 }
 
 int main(int argc, char **argv)
@@ -271,7 +282,7 @@ int main(int argc, char **argv)
 		// Load brain from file and start classifying
 	}
 
-	if (argerror || learn_mode && argc <= optind) {
+	if (argerror || (learn_mode && argc <= optind)) {
 		fprintf(stderr, "Usage: %s [-r learning_rate] w1 [w2 ...]\n", argv[0]);
 		fprintf(stderr, "       %s -f knowledge_file\n", argv[0]);
 		fprintf(stderr, "\n");
