@@ -194,13 +194,18 @@ void think(Brain *b)
 void check(Brain *brain, Vector *expected)
 {
 	think(brain);
+	printf("Computed %lf -> %lf\n",
+			brain->neurons[0]->elem[0], brain->neurons[1]->elem[0]);
 	int d = brain->depth - 1;
 
 	forindex(k, brain->errors[d - 1]) {
 		double out = brain->neurons[d]->elem[k];
 		double target = expected->elem[k];
 		brain->errors[d - 1]->elem[k] = out * (1 - out) * (target - out);
+		printf("Error term: %lf * %lf * %lf = %lf\n",
+				out, 1 - out, target - out, brain->errors[d - 1]->elem[k]);
 	}
+
 
 	for (--d; d > 0; --d) {
 		forindex(h, brain->errors[d - 1]) {
@@ -226,8 +231,12 @@ void learn(Brain *brain, Vector *expected)
 			forindex(i, brain->neurons[d]) {
 				double value = brain->neurons[d]->elem[i];
 				weightfromto(brain, d, i, j) += brain->rate * error * value;
+				printf("Weight update: %lf * %lf * %lf = %lf\n",
+						brain->rate, error, value, brain->rate * error * value);
 			}
 			brain->biases[d]->elem[j] += brain->rate * error;
+			printf("Bias update: %lf * %lf = %lf\n",
+					brain->rate, error, brain->rate * error);
 		}
 	}
 }
@@ -240,6 +249,8 @@ void learn_loop(Brain *brain)
 	int output_len = brain->widths[brain->depth - 1];
 	Vector *expected = new_vector(output_len);
 
+	printf("y = %lf x + %lf\n", brain->weights[0]->row[0]->elem[0], brain->biases[0]->elem[0]);
+
 	while (scanf("%lf", &x) >= 1) {
 		if (cycle_pos < input_len)
 			brain->neurons[0]->elem[cycle_pos] = x;
@@ -248,7 +259,11 @@ void learn_loop(Brain *brain)
 		cycle_pos++;
 		if (cycle_pos == input_len + output_len) {
 			cycle_pos = 0;
+			puts(""); puts(""); puts(""); puts("");
+			printf("Learning from %lf -> %lf\n",
+					brain->neurons[0]->elem[0], expected->elem[0]);
 			learn(brain, expected);
+			printf("y = %lf x + %lf\n", brain->weights[0]->row[0]->elem[0], brain->biases[0]->elem[0]);
 		}
 	}
 	free(expected);
@@ -329,6 +344,8 @@ int main(int argc, char **argv)
 		}
 
 		brain = new_brain(depth, widths, learning_rate);
+//		brain->weights[0]->row[0]->elem[0] = 0;
+//		brain->biases[0]->elem[0] = -0.5;
 		learn_loop(brain);
 		classify_loop(brain);
 	} else if (!learn_mode) {
