@@ -221,12 +221,13 @@ void learn(Brain *brain, Vector *expected)
 	check(brain, expected);
 
 	for (size_t d = 0; d < brain->depth - 1; ++d) {
-		forindex(i, brain->neurons[d]) {
-			forindex(j, brain->neurons[d + 1]) {
-				double error = brain->errors[d]->elem[j];
+		forindex(j, brain->neurons[d + 1]) {
+			double error = brain->errors[d]->elem[j];
+			forindex(i, brain->neurons[d]) {
 				double value = brain->neurons[d]->elem[i];
 				weightfromto(brain, d, i, j) += brain->rate * error * value;
 			}
+			brain->biases[d]->elem[j] += brain->rate * error;
 		}
 	}
 }
@@ -250,6 +251,7 @@ void learn_loop(Brain *brain)
 			learn(brain, expected);
 		}
 	}
+	free(expected);
 	printf("Done learning.\n");
 }
 
@@ -328,12 +330,7 @@ int main(int argc, char **argv)
 
 		brain = new_brain(depth, widths, learning_rate);
 		learn_loop(brain);
-		char s[100];
-		if (scanf("%s", &s) >= 1) {
-			classify_loop(brain);
-		} else {
-			printf("Got '%s'\n", s);
-		}
+		classify_loop(brain);
 	} else if (!learn_mode) {
 		// Load brain from file and start classifying
 	}
