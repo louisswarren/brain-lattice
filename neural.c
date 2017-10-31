@@ -214,7 +214,6 @@ void check(Brain *brain, Vector *expected)
 			brain->errors[d - 1]->elem[h] = out * (1 - out) * errsum;
 		}
 	}
-
 }
 
 void learn(Brain *brain, Vector *expected)
@@ -275,6 +274,22 @@ void classify_loop(Brain *brain)
 	}
 }
 
+
+void usage(char *prog)
+{
+	fprintf(stderr, "Usage: %s [-r learning_rate] w1 w2 [w3 ...]\n", prog);
+	fprintf(stderr, "       %s -f knowledge_file\n", prog);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Learning mode:\n");
+	fprintf(stderr, "    w1 ... wn are the widths of each neural layer.\n");
+	fprintf(stderr, "    Input is whitespace-separated floats on stdin.\n");
+	fprintf(stderr, "    Output is the weights and biases learned.\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Classifying mode:\n");
+	fprintf(stderr, "    knowledge_file contains weights and biases.\n");
+	fprintf(stderr, "    Input and output is whitespace-separated.\n");
+}
+
 int main(int argc, char **argv)
 {
 	double learning_rate = 0.05;
@@ -299,9 +314,10 @@ int main(int argc, char **argv)
 		}
 	}
 
+	argerror += (learn_mode && argc <= optind + 1);
 
 
-	if (learn_mode && argc > optind) {
+	if (learn_mode && !argerror) {
 		depth = argc - optind;
 		widths = emalloc(sizeof(widths[0]) * depth);
 
@@ -322,18 +338,8 @@ int main(int argc, char **argv)
 		// Load brain from file and start classifying
 	}
 
-	if (argerror || (learn_mode && argc <= optind)) {
-		fprintf(stderr, "Usage: %s [-r learning_rate] w1 [w2 ...]\n", argv[0]);
-		fprintf(stderr, "       %s -f knowledge_file\n", argv[0]);
-		fprintf(stderr, "\n");
-		fprintf(stderr, "Learning mode:\n");
-		fprintf(stderr, "    w1 ... wn are the widths of each neural layer.\n");
-		fprintf(stderr, "    Input is whitespace-separated floats on stdin.\n");
-		fprintf(stderr, "    Output is the weights and biases learned.\n");
-		fprintf(stderr, "\n");
-		fprintf(stderr, "Classifying mode:\n");
-		fprintf(stderr, "    knowledge_file contains weights and biases.\n");
-		fprintf(stderr, "    Input and output is whitespace-separated.\n");
+	if (argerror) {
+		usage(argv[0]);
 	}
 
 	return 0;
