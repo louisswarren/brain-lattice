@@ -1,6 +1,6 @@
 .PHONY: run
 run: neural
-	clear && echo "1.23 4.56 78.901 0.2 0.8" | ./neural 3 4 2
+	clear && python3 teach_squares.py | ./neural 2 14 1
 
 neural: neural.c
 	gcc -o neural neural.c --std=c11 -Wall -Wextra

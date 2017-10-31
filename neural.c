@@ -123,7 +123,6 @@ void print_vector(Vector *v)
 		else
 			printf("],\n");
 	}
-	printf("\n");
 }
 
 void print_matrix(Colmatrix *A)
@@ -145,7 +144,6 @@ void print_matrix(Colmatrix *A)
 		else
 			printf("],\n");
 	}
-	printf("\n");
 }
 
 
@@ -250,7 +248,34 @@ void learn_loop(Brain *brain)
 		cycle_pos++;
 		if (cycle_pos == input_len + output_len) {
 			cycle_pos = 0;
+			printf("Learning that\n");
+			print_vector(brain->neurons[0]);
+			printf("should be\n");
+			print_vector(expected);
+			printf("\n");
 			learn(brain, expected);
+		}
+	}
+	printf("Done learning.\n");
+}
+
+void classify_loop(Brain *brain)
+{
+	double x;
+	int cycle_pos = 0;
+	int input_len = brain->widths[0];
+
+	while (scanf("%lf", &x) >= 1) {
+		brain->neurons[0]->elem[cycle_pos] = x;
+		cycle_pos++;
+		if (cycle_pos == input_len) {
+			cycle_pos = 0;
+			think(brain);
+			printf("For input\n");
+			print_vector(brain->neurons[0]);
+			printf("I think\n");
+			print_vector(brain->output);
+			printf("\n");
 		}
 	}
 }
@@ -292,6 +317,12 @@ int main(int argc, char **argv)
 
 		brain = new_brain(depth, widths, learning_rate);
 		learn_loop(brain);
+		char s[100];
+		if (scanf("%s", &s) >= 1) {
+			classify_loop(brain);
+		} else {
+			printf("Got '%s'\n", s);
+		}
 	} else if (!learn_mode) {
 		// Load brain from file and start classifying
 	}
