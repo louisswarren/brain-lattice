@@ -41,6 +41,16 @@ typedef struct {
 	Vector *output;
 } Brain;
 
+/*
+    ---------              |--------|              ----------
+	| Input | -----------> | Hidden | -----------> | Output |
+	---------              |--------|              ----------
+	 neurons[0]             neurons[1]              neurons[2]
+	           weights[0]              weights[1]
+	           biases[0]               biases[1]
+	                        errors[0]               errors[1]
+*/
+
 
 /* Misc maths */
 
@@ -181,35 +191,39 @@ void think(Brain *b)
 		b->output->elem[k] = sigmoid_approx(b->output->elem[k]);
 }
 
+
+
 void check(Brain *brain, Vector *expected)
 {
 	think(brain);
 	int d = brain->depth - 1;
 
-	forindex(k, brain->errors[d]) {
+	forindex(k, brain->errors[d - 1]) {
 		double out = brain->neurons[d]->elem[k];
 		double target = expected->elem[k];
-		brain->errors[d-1]->elem[k] = out * (1 - out) * (target - out);
+		brain->errors[d - 1]->elem[k] = out * (1 - out) * (target - out);
 	}
 
-	for (; d >= 0; --d) {
-		forindex(k, brain->errors[d]) {
-			double out = brain->neurons[d]->elem[k];
+	for (--d; d > 0; --d) {
+		forindex(h, brain->errors[d - 1]) {
+			double out = brain->neurons[d]->elem[h];
 			double errsum = 0;
-			forindex(n, brain->errors[d + 1]) {
-				double effect_weight = weightfromto(brain, d, k, n);
-				double effect_error = brain->errors[d]->elem[n];
+			forindex(k, brain->errors[d]) {
+				double effect_weight = weightfromto(brain, d, h, k);
+				double effect_error = brain->errors[d]->elem[k];
 				errsum += effect_weight * effect_error;
 			}
-			brain->errors[d-1]->elem[k] = out * (1 - out) * errsum;
+			brain->errors[d - 1]->elem[h] = out * (1 - out) * errsum;
 		}
 	}
+
 }
 
 void learn(Brain *brain, Vector *expected)
 {
 	check(brain, expected);
-	for (size_t d = 0; d < brain->depth - 1; --d) {
+
+	for (size_t d = 0; d < brain->depth - 1; ++d) {
 		forindex(i, brain->neurons[d]) {
 			forindex(j, brain->neurons[d + 1]) {
 				double error = brain->errors[d]->elem[j];
