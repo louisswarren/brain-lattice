@@ -248,11 +248,6 @@ void learn_loop(Brain *brain)
 		cycle_pos++;
 		if (cycle_pos == input_len + output_len) {
 			cycle_pos = 0;
-			printf("Learning that\n");
-			print_vector(brain->neurons[0]);
-			printf("should be\n");
-			print_vector(expected);
-			printf("\n");
 			learn(brain, expected);
 		}
 	}
@@ -268,13 +263,13 @@ void classify_loop(Brain *brain)
 	while (scanf("%lf", &x) >= 1) {
 		brain->neurons[0]->elem[cycle_pos] = x;
 		cycle_pos++;
+		printf("%lf ", x);
 		if (cycle_pos == input_len) {
 			cycle_pos = 0;
 			think(brain);
-			printf("For input\n");
-			print_vector(brain->neurons[0]);
-			printf("I think\n");
-			print_vector(brain->output);
+
+			forindex(i, brain->output)
+				printf("%lf ", brain->output->elem[i]);
 			printf("\n");
 		}
 	}
